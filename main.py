@@ -2,9 +2,6 @@ import cv2
 import flask
 from flask_cors import CORS
 
-# Set up camera
-camera = cv2.VideoCapture(0)
-
 # Set up server
 app = flask.Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -12,6 +9,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 @app.route('/video')
 def video_feed():
     def generate_frames():
+        camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
         while True:
             success, frame = camera.read()
             if not success:
