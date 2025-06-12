@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Open CSI camera (index 0)
-camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
+camera = cv2.VideoCapture(0)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
