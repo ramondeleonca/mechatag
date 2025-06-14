@@ -1,5 +1,7 @@
 #!/bin/sh
-python3 -m venv .venv
-./.venv/Scripts/activate
-pip install -r requirements.txt
-deactivate
+# Install Pipenv
+pip install --user pipenv
+export PATH="$HOME/.local/bin:$PATH"
+
+# Create virtual environment and install dependencies
+pipenv install

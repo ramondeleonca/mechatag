@@ -1,4 +1,2 @@
 #!/bin/sh
-./.venv/Scripts/activate
-python3 main.py
-deactivate
+pipenv run python3 main.py
