@@ -1,7 +1,7 @@
 from flask import Flask, Response
 from picamera2 import Picamera2
 import cv2
-import apriltag
+import pupil_apriltags
 
 app = Flask(__name__)
 
@@ -11,7 +11,7 @@ picam2.configure(picam2.create_video_configuration(main={"format": "XRGB8888", "
 picam2.start()
 
 # Initialize AprilTag detector
-detector = apriltag.Detector()
+detector = pupil_apriltags.Detector()
 
 def generate_stream():
     while True:
