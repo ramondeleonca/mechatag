@@ -20,8 +20,7 @@ def generate_stream():
 
 @app.route("/video")
 def video_feed():
-    return Response(generate_stream(),
-                    mimetype="multipart/x-mixed-replace; boundary=frame")
+    return Response(generate_stream(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, threaded=True)
