@@ -1,8 +1,6 @@
 from flask import Flask, Response
 from picamera2 import Picamera2
 import cv2
-import argparse
-import os
 
 app = Flask(__name__)
 
@@ -11,28 +9,8 @@ picam2 = Picamera2()
 picam2.configure(picam2.create_video_configuration(main={"format": "XRGB8888", "size": (640, 480)}))
 picam2.start()
 
-def is_pi():
-    if os.path.exists('/sys/firmware/devicetree/base/model'):
-        with open('/sys/firmware/devicetree/base/model') as f:
-            model = f.read()
-            return 'pi' in model.lower()
-    return False
-
-# Check if running on Raspberry Pi
-if is_pi():
-    print("Running on a Pi")
-
-# arguments passed to detector
-detector_args = {
-    "families": "tag36h11",
-    "nthreads": 4,
-}
-if True:
-    import pupil_apriltags
-    detector = pupil_apriltags.Detector(**detector_args)
-else:
-    import apriltag
-    detector = apriltag.Detector(**detector_args)
+# Initialize AprilTag detector
+detector = cv2.AprilTagDetector_create(cv2.APRILTAG_TAG_36h11)
 
 def generate_stream():
     while True:
@@ -43,7 +21,6 @@ def generate_stream():
 
         # Detect tags
         detections = detector.detect(gray)
-        detections
 
         for det in detections:
             pts = det.corners.astype(int)
