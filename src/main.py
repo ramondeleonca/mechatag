@@ -61,16 +61,20 @@ def process():
             continue
 
         # Convert frame to grayscale for apriltag detection
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # Detect apriltags in the frame
-        detections = detector.detect(frame)
+        detections = detector.detect(gray)
 
         # Draw detections on the frame
         for detection in detections:
             id = detection.getId()
             center = detection.getCenter()
             cv2.putText(frame, str(id), (int(center.x), int(center.y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+            corners = [[detection.getCorner(i).x, detection.getCorner(i).y] for i in range(4)]
+            cv2.polylines(frame, [np.array(corners, dtype=np.int32)], isClosed=True, color=(0, 255, 0), thickness=2)
+
         
         # Update the output frame
         global out_frame
@@ -113,3 +117,6 @@ if __name__ == "__main__":
     # Start processing on main thread
     logger.info("Starting frame processing...")
     process()
+
+    app_thread.join()  # Wait for the app thread to finish
+    logger.info("Server stopped.")
