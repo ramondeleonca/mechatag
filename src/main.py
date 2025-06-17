@@ -49,6 +49,7 @@ else:
     logger.info("Running on Raspberry Pi, using PiCamera adapter.")
 
 #! Store frame and detection
+frame_lock = threading.Lock()
 frame: np.ndarray = None
 detections: list[apriltag.AprilTagDetection] = []
 
@@ -56,6 +57,9 @@ detections: list[apriltag.AprilTagDetection] = []
 def process():
     global frame, detections
     while True:
+        # Aquire frame lock
+        frame_lock.acquire()
+
         # Capture frame from camera
         frame = camera.get_frame()
         if frame is None:
@@ -74,6 +78,9 @@ def process():
             center = detection.getCenter()
             cv2.putText(frame, str(id), (int(center.x), int(center.y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
+        # Release frame lock
+        frame_lock.release()
+
 
 
 #! Create flask app
@@ -85,6 +92,8 @@ def stream():
     """Stream video feed with apriltag detections."""
     def generate():
         while True:
+            if frame_lock.locked():
+                continue
             if frame is None:
                 continue
             ret, jpeg = cv2.imencode(".jpg", frame)
