@@ -88,11 +88,9 @@ def stream():
     """Stream video feed with apriltag detections."""
     def generate():
         while True:
-            if frame_lock.locked():
+            if out_frame is None:
                 continue
-            if frame is None:
-                continue
-            ret, jpeg = cv2.imencode(".jpg", frame)
+            ret, jpeg = cv2.imencode(".jpg", out_frame)
             if not ret:
                 continue
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
