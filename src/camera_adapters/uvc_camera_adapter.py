@@ -1,4 +1,4 @@
-from camera_adapter import CameraAdapter
+from .camera_adapter import CameraAdapter
 import cv2
 
 # TODO: Add support for configuration

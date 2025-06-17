@@ -1,20 +1,112 @@
 import flask
-import util
 import argparse
-from camera_adapters import camera_adapter
-from camera_adapters.pi_camera_adapter import PiCameraAdapter
-from camera_adapters.uvc_camera_adapter import UvcCameraAdapter
+import logging
+import robotpy_apriltag as apriltag
+import utils
+import threading
+import numpy as np
+import cv2
+from camera_adapters.camera_adapter import CameraAdapter
 
-# CLI args
+#! Setup logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+#! CLI args
 parser = argparse.ArgumentParser(description="Run the MechaTag processing server.")
-# Add uvc argument that takes in an int, autocompletes to 0 if argument present, if not none
-parser.add_argument(
-    "--uvc",
-    type=int,
-    default=None,
-    help="UVC camera ID (default: None, auto-detects)",
-)
-
-# print arguments
+parser.add_argument("--uvc", type=int, default=None, help="UVC camera index, use this option to use a USB webcam.")
+parser.add_argument("--threads", type=int, default=1, help="Number of threads to use for detecting apriltags.")
+parser.add_argument("--families", type=str, default="tag36h11", help="Comma-separated list of apriltag families to use for detection.")
+parser.add_argument("--port", type=int, default=8000, help="Port to run the server on. Default is 8000.")
 args = parser.parse_args()
-print(f"Parsed arguments: {args}")
+
+#! Create apriltag detector
+detector = apriltag.AprilTagDetector()
+
+# Add families to detector
+for family in args.families.split(","):
+    family: str = family.strip()
+    if family:
+        res = detector.addFamily(family)
+        if res:
+            logger.info(f"Added apriltag family: {family}")
+        else:
+            logger.error(f"Failed to add apriltag family: {family}. Please check if the family is supported.")
+
+#! Create camera adapter
+camera: CameraAdapter
+if args.uvc is not None:
+    from camera_adapters.uvc_camera_adapter import UvcCameraAdapter
+    camera = UvcCameraAdapter(args.uvc)
+    logger.info(f"Using UVC camera with index {args.uvc}")
+elif not utils.is_pi():
+    from camera_adapters.uvc_camera_adapter import UvcCameraAdapter
+    camera = UvcCameraAdapter(0)  # Default to first UVC camera if not using Pi
+    logger.info("Running on non-Pi system, using UVC camera adapter by default with index 0.")
+else:
+    from camera_adapters.pi_camera_adapter import PiCameraAdapter
+    camera = PiCameraAdapter()
+    logger.info("Running on Raspberry Pi, using PiCamera adapter.")
+
+#! Store frame and detection
+frame: np.ndarray = None
+detections: list[apriltag.AprilTagDetection] = []
+
+#! Frame processing function
+def process():
+    global frame, detections
+    while True:
+        # Capture frame from camera
+        frame = camera.get_frame()
+        if frame is None:
+            logger.warning("Failed to capture frame from camera.")
+            continue
+
+        # Convert frame to grayscale for apriltag detection
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Detect apriltags in the frame
+        detections = detector.detect(frame)
+
+        # Draw detections on the frame
+        for detection in detections:
+            id = detection.getId()
+            center = detection.getCenter()
+            cv2.putText(frame, str(id), (int(center.x), int(center.y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+
+
+#! Create flask app
+app = flask.Flask(__name__)
+
+# Routes
+@app.route("/stream")
+def stream():
+    """Stream video feed with apriltag detections."""
+    def generate():
+        while True:
+            if frame is None:
+                continue
+            ret, jpeg = cv2.imencode(".jpg", frame)
+            if not ret:
+                continue
+            yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
+    return flask.Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route("/")
+def index():
+    """Serve the main page."""
+    return flask.render_template("index.html")
+
+# App thread
+def start_app():
+    app.run(port=args.port, use_reloader=False)
+app_thread = threading.Thread(target=start_app)
+
+if __name__ == "__main__":
+    app_thread.start()
+    logger.info(f"Starting server on port {args.port}...")
+
+    # Start processing on main thread
+    logger.info("Starting frame processing...")
+    process()

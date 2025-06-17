@@ -25,10 +25,7 @@ def generate_stream():
         ret, jpeg = cv2.imencode(".jpg", frame)
         if not ret:
             continue
-        yield (b"--frame\r\n"
-               b"Content-Type: image/jpeg\r\n\r\n" +
-               jpeg.tobytes() +
-               b"\r\n")
+        yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
 
 @app.route("/video")
 def video_feed():
