@@ -100,7 +100,7 @@ def index():
 
 # App thread
 def start_app():
-    app.run(port=args.port, use_reloader=False)
+    app.run(host="0.0.0.0", port=args.port, use_reloader=False)
 app_thread = threading.Thread(target=start_app)
 
 if __name__ == "__main__":
