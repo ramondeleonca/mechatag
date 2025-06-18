@@ -1,3 +1,4 @@
+import cv2
 from .camera_adapter import CameraAdapter
 from picamera2 import Picamera2
 
@@ -7,9 +8,11 @@ class PiCameraAdapter(CameraAdapter):
 
     def __init__(self):
         self.camera = Picamera2()
-        self.camera.configure(self.camera.create_video_configuration(main={"format": "XRGB8888", "size": (640, 480)}))
+        # self.camera.configure(self.camera.create_video_configuration(main={"format": "XRGB8888", "size": (640, 480)}))
+        self.camera.configure(self.camera.create_video_configuration(main={"format": "YUV420", "size": (640, 480)}))
         # self.camera.configure(self.camera.create_video_configuration(main={"format": "BGR888", "size": (640, 480)}))
         self.camera.start()
 
     def get_frame(self):
-        return self.camera.capture_array()
+        # return 
+        cv2.cvtColor(self.camera.capture_array(), cv2.COLOR_YUV2BGR_I420)
