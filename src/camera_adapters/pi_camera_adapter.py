@@ -13,5 +13,5 @@ class PiCameraAdapter(CameraAdapter):
 
     def get_frame(self):
         frame = self.camera.capture_array()
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
         return frame
