@@ -61,6 +61,7 @@ def process():
             continue
 
         # Convert frame to grayscale for apriltag detection
+        # TODO: Is this correct?
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # Detect apriltags in the frame
