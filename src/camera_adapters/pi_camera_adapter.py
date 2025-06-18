@@ -1,6 +1,6 @@
-import cv2
 from .camera_adapter import CameraAdapter
 from picamera2 import Picamera2
+import cv2
 
 # TODO: Add support for configuration
 class PiCameraAdapter(CameraAdapter):
@@ -12,5 +12,6 @@ class PiCameraAdapter(CameraAdapter):
         self.camera.start()
 
     def get_frame(self):
-        # return 
-        cv2.cvtColor(self.camera.capture_array(), cv2.COLOR_BGRA2BGR)
+        frame = self.camera.capture_array()
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+        return frame
