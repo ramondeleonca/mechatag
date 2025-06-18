@@ -7,11 +7,9 @@ import threading
 import numpy as np
 import cv2
 import time
+import toml
+import os
 from camera_adapters.camera_adapter import CameraAdapter
-
-#! Setup logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 #! CLI args
 parser = argparse.ArgumentParser(description="Run the MechaTag processing server.")
@@ -20,6 +18,10 @@ parser.add_argument("--threads", type=int, default=1, help="Number of threads to
 parser.add_argument("--families", type=str, default="tag36h11", help="Comma-separated list of apriltag families to use for detection.")
 parser.add_argument("--port", type=int, default=8000, help="Port to run the server on. Default is 8000.")
 args = parser.parse_args()
+
+#! Setup logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 #! Create apriltag detector
 detector = apriltag.AprilTagDetector()
