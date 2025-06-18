@@ -6,6 +6,7 @@ import utils
 import threading
 import numpy as np
 import cv2
+import time
 from camera_adapters.camera_adapter import CameraAdapter
 
 #! Setup logger
@@ -52,7 +53,9 @@ else:
 out_frame: np.ndarray = None
 
 #! Frame processing function
+last_process_time = time.time()
 def process():
+    global out_frame, last_process_time
     while True:
         # Capture frame from camera
         frame = camera.get_frame()
@@ -76,9 +79,13 @@ def process():
             corners = [[detection.getCorner(i).x, detection.getCorner(i).y] for i in range(4)]
             cv2.polylines(frame, [np.array(corners, dtype=np.int32)], isClosed=True, color=(0, 255, 0), thickness=2)
 
+        # Draw FPS
+        current_time = time.time()
+        fps = 1 / (current_time - last_process_time)
+        last_process_time = current_time
+        cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         
         # Update the output frame
-        global out_frame
         out_frame = frame.copy()
         logger.debug(f"Processed frame with {len(detections)} detections.")
 
