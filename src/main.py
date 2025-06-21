@@ -1,7 +1,6 @@
 import flask
 import argparse
 import logging
-import robotpy_apriltag as apriltag
 import utils
 import threading
 import numpy as np
@@ -9,7 +8,14 @@ import cv2
 import time
 import toml
 import os
+from flask import send_from_directory
+from robotpy_apriltag import AprilTagDetector, AprilTagPoseEstimator
 from camera_adapters.camera_adapter import CameraAdapter
+
+#! PATHS
+DIRNAME = os.path.dirname(os.path.abspath(__file__))
+DIST_DIR = os.path.join(DIRNAME, "frontend", "dist")
+ASSETS_DIR = os.path.join(DIST_DIR, "assets")
 
 #! CLI args
 parser = argparse.ArgumentParser(description="Run the MechaTag processing server.")
@@ -23,8 +29,15 @@ args = parser.parse_args()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Log options
+logger.info(f"Running with options: {args}")
+
 #! Create apriltag detector
-detector = apriltag.AprilTagDetector()
+detector = AprilTagDetector()
+
+#! Create apriltag pose estimator
+# pose_estimator_config = AprilTagPoseEstimator.Config(0.14)
+# pose_estimator = AprilTagPoseEstimator()
 
 # Add families to detector
 for family in args.families.split(","):
@@ -51,6 +64,8 @@ else:
     camera = PiCameraAdapter()
     logger.info("Running on Raspberry Pi, using PiCamera adapter.")
 
+#! Create output adapter
+
 #! Store frame and detection
 out_frame: np.ndarray = None
 
@@ -59,20 +74,24 @@ last_process_time = time.time()
 def process():
     global out_frame, last_process_time
     while True:
-        # Capture frame from camera
+        #* Capture frame from camera
         frame = camera.get_frame()
         if frame is None:
             logger.warning("Failed to capture frame from camera.")
             continue
 
         # Convert frame to grayscale for apriltag detection
-        # TODO: Is this correct?
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Detect apriltags in the frame
+        #* Detect apriltags in the frame
         detections = detector.detect(gray)
 
-        # Draw detections on the frame
+        # Localize
+        detections[0]
+
+        
+        #* Draw graphics
+        # Draw ID
         for detection in detections:
             id = detection.getId()
             center = detection.getCenter()
@@ -96,6 +115,18 @@ def process():
 #! Create flask app
 app = flask.Flask(__name__)
 
+# Serve react frontend
+# * Serve static assets (Vite puts them in /assets)
+@app.route('/assets/<path:filename>')
+def assets(filename):
+    return send_from_directory(ASSETS_DIR, filename)
+
+# * Serve index.html for everything else (SPA fallback)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
+    return send_from_directory(DIST_DIR, 'index.html')
+
 # Routes
 @app.route("/stream")
 def stream():
@@ -110,14 +141,9 @@ def stream():
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
     return flask.Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-@app.route("/")
-def index():
-    """Serve the main page."""
-    return flask.render_template("index.html")
-
 # App thread
 def start_app():
-    app.run(host="0.0.0.0", port=args.port, use_reloader=False)
+    app.run(host="0.0.0.0", debug=True, port=args.port, use_reloader=False)
 app_thread = threading.Thread(target=start_app)
 
 if __name__ == "__main__":
