@@ -4,6 +4,8 @@ Apriltag localization for MechaLeague and small robots. MechaTag is a smart came
 
 # Setup
 
+[For building and testing, do step 2.2-3](#2-clone-the-repository)
+
 ### 1. Flash Raspberry Pi OS Lite (Bookworm)
 Using [Raspberry Pi Imager](https://www.raspberrypi.com/software/), flash Raspberry Pi OS Lite (Bookworm) 64-bit to a 16GB or more micro SD card
 
