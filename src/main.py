@@ -7,37 +7,44 @@ import numpy as np
 import cv2
 import time
 import toml
+import webbrowser
 import os
 from flask import send_from_directory
-from robotpy_apriltag import AprilTagDetector, AprilTagPoseEstimator
+import robotpy_apriltag as apriltag
+from robotpy_apriltag import AprilTagDetector, AprilTagPoseEstimator, AprilTagDetection
 from camera_adapters.camera_adapter import CameraAdapter
 
-#! PATHS
+# ! PATHS
 DIRNAME = os.path.dirname(os.path.abspath(__file__))
 DIST_DIR = os.path.join(DIRNAME, "frontend", "dist")
 ASSETS_DIR = os.path.join(DIST_DIR, "assets")
 
-#! CLI args
+# ! CONSTANTS
+is_pi = utils.is_pi()
+
+# ! CLI args
 parser = argparse.ArgumentParser(description="Run the MechaTag processing server.")
 parser.add_argument("--uvc", type=int, default=None, help="UVC camera index, use this option to use a USB webcam.")
 parser.add_argument("--threads", type=int, default=1, help="Number of threads to use for detecting apriltags.")
 parser.add_argument("--families", type=str, default="tag36h11", help="Comma-separated list of apriltag families to use for detection.")
-parser.add_argument("--port", type=int, default=8000, help="Port to run the server on. Default is 8000.")
+parser.add_argument("--port", type=int, default=5353, help="Port to run the server on. Default is 5353.")
+parser.add_argument("--tag-size", type=float, default=0.05, help="Size of the apriltags in meters. Default is 0.05m")
 args = parser.parse_args()
 
-#! Setup logger
+# ! Setup logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Log options
 logger.info(f"Running with options: {args}")
 
-#! Create apriltag detector
+# ! Create apriltag detector
 detector = AprilTagDetector()
 
-#! Create apriltag pose estimator
-# pose_estimator_config = AprilTagPoseEstimator.Config(0.14)
-# pose_estimator = AprilTagPoseEstimator()
+# ! Create apriltag pose estimator
+pose_estimator_config = AprilTagPoseEstimator.Config(tagSize=args.tag_size, fx=0, fy=0, cx=0, cy=0)
+pose_estimator = AprilTagPoseEstimator(pose_estimator_config)
+apriltag.AprilTagField(apriltag.AprilTagField.k2022RapidReact)
 
 # Add families to detector
 for family in args.families.split(","):
@@ -49,13 +56,13 @@ for family in args.families.split(","):
         else:
             logger.error(f"Failed to add apriltag family: {family}. Please check if the family is supported.")
 
-#! Create camera adapter
+# ! Create camera adapter
 camera: CameraAdapter
 if args.uvc is not None:
     from camera_adapters.uvc_camera_adapter import UvcCameraAdapter
     camera = UvcCameraAdapter(args.uvc)
     logger.info(f"Using UVC camera with index {args.uvc}")
-elif not utils.is_pi():
+elif not is_pi:
     from camera_adapters.uvc_camera_adapter import UvcCameraAdapter
     camera = UvcCameraAdapter(0)  # Default to first UVC camera if not using Pi
     logger.info("Running on non-Pi system, using UVC camera adapter by default with index 0.")
@@ -64,15 +71,15 @@ else:
     camera = PiCameraAdapter()
     logger.info("Running on Raspberry Pi, using PiCamera adapter.")
 
-#! Create output adapter
-
-#! Store frame and detection
+# ! Store frame and detection
 out_frame: np.ndarray = None
+detections: list[AprilTagDetection] = []
 
-#! Frame processing function
+# ! Frame processing function
 last_process_time = time.time()
 def process():
-    global out_frame, last_process_time
+    global out_frame, detections, last_process_time
+
     while True:
         #* Capture frame from camera
         frame = camera.get_frame()
@@ -87,9 +94,10 @@ def process():
         detections = detector.detect(gray)
 
         # Localize
-        detections[0]
-
+        if detections:
+            pass
         
+        # TODO: Instead draw graphics in the /stream route
         #* Draw graphics
         # Draw ID
         for detection in detections:
@@ -112,10 +120,11 @@ def process():
 
 
 
-#! Create flask app
+# ! Create flask app
 app = flask.Flask(__name__)
 
-# Serve react frontend
+# ! Serve react frontend
+# TODO: Add support for frontend in build
 # * Serve static assets (Vite puts them in /assets)
 @app.route('/assets/<path:filename>')
 def assets(filename):
@@ -147,10 +156,15 @@ def start_app():
 app_thread = threading.Thread(target=start_app)
 
 if __name__ == "__main__":
-    app_thread.start()
+    # Start web app
     logger.info(f"Starting server on port {args.port}...")
+    app_thread.start()
 
-    # Start processing on main thread
+    # Open main page when not running on pi
+    if not is_pi:
+        webbrowser.open(f"http://localhost:{args.port}/stream", 2)
+
+    # Start processing on main thread (BLOCKING)
     logger.info("Starting frame processing...")
     process()
 

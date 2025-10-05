@@ -1,0 +1,6 @@
+robotpy-apriltag
+flask-cors
+flask
+toml
+numpy
+opencv-python
