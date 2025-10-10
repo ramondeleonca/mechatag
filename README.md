@@ -2,6 +2,8 @@
 
 Apriltag localization for MechaLeague and small robots. MechaTag is a smart camera and software suite based on the Raspberry Pi Zero 2w, made to localize MechaLeague robots on the field
 
+[Demo video](https://youtu.be/h-NDukLMVQo)
+
 # Steps to run the demo (for non-pi systems):
 1. Clone the repository
 2. Create a venv

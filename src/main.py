@@ -81,7 +81,7 @@ def process():
     global out_frame, detections, last_process_time
 
     while True:
-        #* Capture frame from camera
+        # * Capture frame from camera
         frame = camera.get_frame()
         if frame is None:
             logger.warning("Failed to capture frame from camera.")
@@ -90,7 +90,7 @@ def process():
         # Convert frame to grayscale for apriltag detection
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        #* Detect apriltags in the frame
+        # * Detect apriltags in the frame
         detections = detector.detect(gray)
 
         # Localize
@@ -98,7 +98,7 @@ def process():
             pass
         
         # TODO: Instead draw graphics in the /stream route
-        #* Draw graphics
+        # * Draw graphics
         # Draw ID
         for detection in detections:
             id = detection.getId()
